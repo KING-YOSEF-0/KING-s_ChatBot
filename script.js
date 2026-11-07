@@ -15,7 +15,7 @@ async function api(path, opts = {}) {
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
   if (res.status === 401 && token && path !== "/api/login") { logoutLocal(); throw new Error("Please log in again."); }
-  if (!res.ok && !opts.raw) { let m = res.statusText; try { m = (await res.json()).error || m; } catch {} throw new Error(m); }
+  if (!res.ok && !opts.raw) { let m = "Cannot reach the chat server (error " + res.status + "). Run node server.js and open http://localhost:3000"; try { m = (await res.json()).error || m; } catch {} throw new Error(m); }
   return opts.raw ? res : res.json();
 }
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -64,7 +64,7 @@ $("authForm").onsubmit = async e => {
     token = r.token; localStorage.setItem("token", token);
     $("pass").value = "";
     enterApp(r.name);
-  } catch (err) { $("authErr").textContent = err.message; }
+  } catch (err) { $("authErr").textContent = err.message === "Failed to fetch" ? "Cannot reach the chat server. Run node server.js and open http://localhost:3000" : err.message; }
   $("authBtn").disabled = false;
 };
 function logoutLocal() {
@@ -175,7 +175,7 @@ $("form").onsubmit = async e => {
       await api(`/api/chats/${currentId}/append`, { method: "POST", body: { messages: [{ role: "user", text }, { role: "assistant", text: "= " + answer }] } });
     } else {
       const res = await api("/api/chat", { method: "POST", raw: true, body: { chatId: currentId, text, image: image && { media_type: image.media_type, data: image.data } } });
-      if (!res.ok) { let m = res.statusText; try { m = (await res.json()).error || m; } catch {} throw new Error(m); }
+      if (!res.ok) { let m = "Cannot reach the chat server (error " + res.status + "). Run node server.js and open http://localhost:3000"; try { m = (await res.json()).error || m; } catch {} throw new Error(m); }
       const reader = res.body.getReader(), dec = new TextDecoder();
       let buf = "", full = "";
       for (;;) {
