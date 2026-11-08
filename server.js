@@ -115,7 +115,11 @@ async function streamChat(req, res, chats) {
     headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: MODEL, max_tokens: 2000, stream: true, system: SYSTEM, messages: msgs })
   });
-  if (!up.ok) { c.messages.pop(); return send(res, up.status, { error: "AI service error: " + (await up.text()).slice(0, 200) }); }
+  if (!up.ok) {
+    c.messages.pop();
+    const bad = up.status === 401 || up.status === 403;
+    return send(res, bad ? 502 : up.status, { error: bad ? "The AI key is invalid. Set a real ANTHROPIC_API_KEY and restart the server." : "AI service error: " + (await up.text()).slice(0, 200) });
+  }
 
   if (c.title === "New chat") c.title = (text || "Image chat").slice(0, 40);
   res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
